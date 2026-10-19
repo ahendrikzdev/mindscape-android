@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="forest_bg">#030A06</color>
+    <color name="forest_card">#091A11</color>
+    <color name="forest_border">#122A1D</color>
+    <color name="neon_lime">#A3E635</color>
+    <color name="neon_emerald">#10B981</color>
+    <color name="neon_cyan">#06B6D4</color>
+</resources>
