@@ -2,12 +2,16 @@
 
 **Status:** approved · **Source:** `mindscape.html` prototype · **Package:** `com.mindscape.app`
 
+> **Gesture update (post-build):** the app now uses **panel swipes only**. Horizontal swipes
+> move between Learn, Watch and Map; card-level Learn/Map swipes were removed and are exposed
+> as explicit buttons. The feed's pager keys and page clamping were hardened at the same time.
+
 ## 1. Goal & approach
 
 Rewrite the single-file HTML prototype as a **native Kotlin + Jetpack Compose Android app**
 (not a WebView wrapper). The port preserves the forest/glass/neon visual language, the three
 panels, quiz scoring, XP, node mastery/unlocking, the constellation map, the import flow, and
-both card swipe gestures.
+horizontal panel navigation.
 
 | | Native Compose (chosen) | WebView wrapper (rejected) |
 |---|---|---|
@@ -65,10 +69,10 @@ Import stays a simulated 750 ms "AI extraction", exactly like the prototype. No 
 
 | HTML | Compose |
 |---|---|
-| `.viewport-wrapper` 3-panel carousel | `HorizontalPager` (3 pages, starts on Watch, user scroll disabled; header/dots/footer animate it) |
+| `.viewport-wrapper` 3-panel carousel | `HorizontalPager` (3 pages, starts on Watch, horizontal panel swipes enabled; header/dots/footer also animate it) |
 | Fixed header, dot indicators, glass footer | Overlay rows with translucent glass surfaces and gradient scrims |
 | Snap vertical feed, 480 px cards | `VerticalPager`, full-bleed cards |
-| Card swipe L/R | `detectHorizontalDragGestures` + alpha "Learn"/"Map" indicators, 60 dp threshold, haptics |
+| Card actions | Explicit "Open Lesson & Quiz" and map buttons; card-level horizontal swipes removed so the pager owns horizontal drags |
 | Lesson / Quiz tabs | Custom segmented glass pill + scrollable column |
 | Quiz options/feedback | State-driven rows, locked after answering, lime/rose feedback, +100 XP |
 | SVG constellation + nodes | `Canvas` edges + percentage-positioned node composables |

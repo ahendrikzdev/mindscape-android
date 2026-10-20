@@ -1,8 +1,8 @@
 # Mindscape — Android
 
-A native Android port of the Mindscape HTML prototype: learn from short videos, swipe them
-into lessons or onto a constellation-style knowledge map, answer quizzes, earn XP, and unlock
-skill nodes.
+A native Android port of the Mindscape HTML prototype: learn from short videos, open lessons,
+pin topics to a constellation-style knowledge map, answer quizzes, earn XP, and unlock skill
+nodes.
 
 Built with **Kotlin + Jetpack Compose** and packaged as an installable debug APK by **GitHub
 Actions**. All fonts and thumbnails are bundled, so the app needs no network permission and
@@ -49,16 +49,15 @@ and `minSdk` 24.
 
 - **Learn panel** — active lesson card, Lesson/Quiz segmented control, key takeaway, quiz
   progress, multiple-choice quiz with explanations, XP updates.
-- **Watch panel** — vertical snap feed of video cards with bundled thumbnails. Swipe a card
-  **left** to open its lesson, **right** to focus its node on the map; delete or jump to the map
-  from the side actions.
+- **Watch panel** — vertical snap feed of video cards with bundled thumbnails. Each card has
+  explicit **Open Lesson & Quiz**, **Show on map**, and delete actions.
 - **Map panel** — realm switcher (Physics & Cosmos / Ancient World), XP + animated completion
   ring, interactive constellation skill tree (dashed locked edges, glowing unlocked edges),
   node selection, and a horizontal carousel of that node's videos.
 - **Import flow** — link field, topic-node picker, simulated 750 ms AI extraction, spinner, and
   automatic navigation to the new lesson. Imported videos are pinned to the chosen node.
-- **Navigation** — header pills + dots, floating glass bottom bar with center collect button,
-  back handling (import dialog → Watch panel), haptics on swipe and answer.
+- **Navigation** — swipe horizontally between Learn, Watch and Map, or use the header pills,
+  dots, and floating glass bottom bar (with center collect button). Back returns to Watch.
 
 ### Intentional improvements over the prototype
 

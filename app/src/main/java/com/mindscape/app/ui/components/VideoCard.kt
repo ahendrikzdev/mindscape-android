@@ -4,15 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,21 +29,12 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,58 +51,25 @@ import com.mindscape.app.ui.theme.TextMuted
 import com.mindscape.app.ui.theme.TextPrimary
 
 /**
- * Full-bleed feed card with the prototype's horizontal gestures:
- * swipe left opens the lesson, swipe right focuses the topic on the map.
+ * Feed card with explicit lesson and map actions.
+ *
+ * Horizontal drags are intentionally left to the parent pager, so swiping anywhere on the
+ * card switches between Learn, Watch and Map instead of triggering a card-level action.
  */
 @Composable
-fun SwipeableVideoCard(
+fun FeedVideoCard(
     artifact: VideoArtifact,
     onOpenLesson: () -> Unit,
     onShowInMap: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val density = LocalDensity.current
-    val haptics = LocalHapticFeedback.current
-    val thresholdPx = with(density) { 60.dp.toPx() }
-    val maxDragPx = with(density) { 140.dp.toPx() }
-    val fadeDistancePx = with(density) { 80.dp.toPx() }
-
-    var dragOffset by remember(artifact.id) { mutableFloatStateOf(0f) }
-    val leftProgress = (-dragOffset / fadeDistancePx).coerceIn(0f, 1f)
-    val rightProgress = (dragOffset / fadeDistancePx).coerceIn(0f, 1f)
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(28.dp))
             .background(ForestCard)
-            .border(1.dp, NeonEmerald.copy(alpha = 0.2f), RoundedCornerShape(28.dp))
-            .pointerInput(artifact.id) {
-                detectHorizontalDragGestures(
-                    onDragStart = { dragOffset = 0f },
-                    onDragCancel = { dragOffset = 0f },
-                    onDragEnd = {
-                        val finalOffset = dragOffset
-                        dragOffset = 0f
-                        when {
-                            finalOffset <= -thresholdPx -> {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onOpenLesson()
-                            }
-
-                            finalOffset >= thresholdPx -> {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onShowInMap()
-                            }
-                        }
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffset = (dragOffset + dragAmount).coerceIn(-maxDragPx, maxDragPx)
-                    },
-                )
-            },
+            .border(1.dp, NeonEmerald.copy(alpha = 0.2f), RoundedCornerShape(28.dp)),
     ) {
         Image(
             painter = painterResource(artifact.thumbnailRes),
@@ -133,9 +88,6 @@ fun SwipeableVideoCard(
                     ),
                 ),
         )
-
-        SwipeEdge(alpha = leftProgress, left = true)
-        SwipeEdge(alpha = rightProgress, left = false)
 
         Row(
             modifier = Modifier
@@ -249,50 +201,6 @@ fun SwipeableVideoCard(
                     color = ForestBg,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BoxScope.SwipeEdge(alpha: Float, left: Boolean) {
-    val color = if (left) NeonCyan else NeonLime
-    val brush = if (left) {
-        Brush.horizontalGradient(listOf(color.copy(alpha = 0.4f), Color.Transparent))
-    } else {
-        Brush.horizontalGradient(listOf(Color.Transparent, color.copy(alpha = 0.4f)))
-    }
-    Box(
-        modifier = Modifier
-            .align(if (left) Alignment.CenterStart else Alignment.CenterEnd)
-            .fillMaxHeight()
-            .width(96.dp)
-            .graphicsLayer { this.alpha = alpha }
-            .background(brush),
-    ) {
-        GlassPill(
-            modifier = Modifier
-                .align(if (left) Alignment.CenterStart else Alignment.CenterEnd)
-                .padding(horizontal = 14.dp),
-        ) {
-            if (left) {
-                Icon(
-                    Icons.Filled.School,
-                    contentDescription = null,
-                    tint = NeonCyan,
-                    modifier = Modifier.size(11.dp),
-                )
-                Spacer(Modifier.size(5.dp))
-                Text("Learn", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            } else {
-                Text("Map", color = NeonLime, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.size(5.dp))
-                Icon(
-                    Icons.Filled.Explore,
-                    contentDescription = null,
-                    tint = NeonLime,
-                    modifier = Modifier.size(11.dp),
                 )
             }
         }

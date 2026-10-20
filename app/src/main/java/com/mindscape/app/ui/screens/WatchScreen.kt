@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +28,7 @@ import com.mindscape.app.data.MindscapeUiState
 import com.mindscape.app.ui.components.GlassSurface
 import com.mindscape.app.ui.components.GradientButton
 import com.mindscape.app.ui.components.MonoLabel
-import com.mindscape.app.ui.components.SwipeableVideoCard
+import com.mindscape.app.ui.components.FeedVideoCard
 import com.mindscape.app.ui.theme.ForestBg
 import com.mindscape.app.ui.theme.NeonCyan
 import com.mindscape.app.ui.theme.TextMuted
@@ -103,6 +104,12 @@ fun WatchScreen(
 
     val pagerState = rememberPagerState(pageCount = { state.videoFeed.size })
 
+    LaunchedEffect(state.videoFeed.size) {
+        if (state.videoFeed.isNotEmpty() && pagerState.currentPage > state.videoFeed.lastIndex) {
+            pagerState.scrollToPage(state.videoFeed.lastIndex)
+        }
+    }
+
     VerticalPager(
         state = pagerState,
         modifier = modifier
@@ -111,10 +118,10 @@ fun WatchScreen(
         contentPadding = PaddingValues(horizontal = 14.dp),
         pageSpacing = 12.dp,
         beyondViewportPageCount = 1,
-        key = { page -> state.videoFeed[page].id },
+        key = { page -> state.videoFeed.getOrNull(page)?.id ?: "page-$page" },
     ) { page ->
         val artifact = state.videoFeed.getOrNull(page) ?: return@VerticalPager
-        SwipeableVideoCard(
+        FeedVideoCard(
             artifact = artifact,
             onOpenLesson = { onOpenLesson(artifact.id) },
             onShowInMap = { onShowInMap(artifact.id) },

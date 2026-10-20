@@ -113,7 +113,7 @@ fun MindscapeApp(viewModel: MindscapeViewModel = viewModel()) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = false,
+                    userScrollEnabled = true,
                     key = { it },
                 ) { page ->
                     when (page) {
