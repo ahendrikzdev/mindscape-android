@@ -51,10 +51,11 @@ object MindscapeEngine {
     ): MindscapeUiState {
         val artifact = state.videoFeed.firstOrNull { it.id == artifactId } ?: return state
         if (artifact.tested) return state
-        if (optionIndex !in artifact.quiz.options.indices) return state
+        val quiz = artifact.quiz ?: return state
+        if (optionIndex !in quiz.options.indices) return state
 
         val answered = state.copy(answers = state.answers + (artifactId to optionIndex))
-        if (optionIndex != artifact.quiz.correctIndex) return answered
+        if (optionIndex != quiz.correctIndex) return answered
 
         val updatedFeed = state.videoFeed.map { video ->
             if (video.id == artifactId) video.copy(tested = true) else video
@@ -131,9 +132,12 @@ object MindscapeEngine {
         if (domain.nodes.isEmpty()) 0f
         else domain.nodes.count { it.status == NodeStatus.MASTERED }.toFloat() / domain.nodes.size
 
-    fun quizProgress(artifact: VideoArtifact?): Float =
-        if (artifact?.tested == true) 1f else 0.2f
+    fun quizProgress(artifact: VideoArtifact?): Float = when {
+        artifact?.tested == true -> 1f
+        artifact?.quiz == null -> 0f
+        else -> 0.2f
+    }
 
     fun isCorrect(artifact: VideoArtifact, optionIndex: Int): Boolean =
-        optionIndex == artifact.quiz.correctIndex
+        artifact.quiz?.correctIndex == optionIndex
 }

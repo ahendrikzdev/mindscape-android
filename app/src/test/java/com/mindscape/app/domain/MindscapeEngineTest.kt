@@ -32,7 +32,7 @@ class MindscapeEngineTest {
         author = "@test",
         nodeId = nodeId,
         tested = tested,
-        thumbnailRes = 0,
+        thumbnailKey = "test",
         caption = "Caption",
         summary = "Summary",
         quiz = quiz,
@@ -191,6 +191,19 @@ class MindscapeEngineTest {
     fun `quiz progress is pending until tested`() {
         assertEquals(0.2f, MindscapeEngine.quizProgress(artifact("v1")), 0.001f)
         assertEquals(1f, MindscapeEngine.quizProgress(artifact("v1", tested = true)), 0.001f)
-        assertEquals(0.2f, MindscapeEngine.quizProgress(null), 0.001f)
+        assertEquals(0f, MindscapeEngine.quizProgress(null), 0.001f)
+    }
+
+    @Test
+    fun `watch only video cannot award quiz xp`() {
+        val watchOnly = state().copy(
+            videoFeed = listOf(artifact("v1").copy(quiz = null)),
+        )
+
+        val result = MindscapeEngine.answerQuestion(watchOnly, "v1", 0)
+
+        assertFalse(result.videoFeed.first().tested)
+        assertEquals(850, result.userXp)
+        assertEquals(0f, MindscapeEngine.quizProgress(result.videoFeed.first()), 0.001f)
     }
 }

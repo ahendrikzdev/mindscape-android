@@ -68,6 +68,7 @@ fun LearnScreen(
     val statusLabel = when {
         artifact == null -> "No video"
         artifact.tested -> "100% Done"
+        artifact.quiz == null -> "Watch only"
         else -> "Quiz Pending"
     }
     val progress = if (artifact == null) 0f else MindscapeEngine.quizProgress(artifact)
@@ -369,9 +370,13 @@ private fun QuizTab(
                 }
             }
 
+            val quiz = artifact?.quiz
             Text(
-                text = artifact?.quiz?.question
-                    ?: "Select a video to generate a quiz question...",
+                text = quiz?.question ?: if (artifact == null) {
+                    "Select a video to generate a quiz question..."
+                } else {
+                    "This video is watch-only. Re-import it with a transcript to generate a quiz."
+                },
                 color = TextPrimary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
@@ -384,13 +389,19 @@ private fun QuizTab(
                     color = TextMuted.copy(alpha = 0.8f),
                     fontSize = 10.sp,
                 )
+            } else if (quiz == null) {
+                Text(
+                    text = "No quiz is available for this video yet.",
+                    color = TextMuted.copy(alpha = 0.8f),
+                    fontSize = 10.sp,
+                )
             } else {
                 val selectedAnswer = answers[artifact.id]
-                artifact.quiz.options.forEachIndexed { index, option ->
+                quiz.options.forEachIndexed { index, option ->
                     QuizOptionRow(
                         text = option,
                         isSelected = selectedAnswer == index,
-                        isCorrectOption = index == artifact.quiz.correctIndex,
+                        isCorrectOption = index == quiz.correctIndex,
                         tested = artifact.tested,
                         enabled = selectedAnswer == null && !artifact.tested,
                         onClick = { onAnswer(artifact.id, index) },
@@ -398,7 +409,7 @@ private fun QuizTab(
                 }
                 QuizFeedback(
                     selectedAnswer = selectedAnswer,
-                    correctIndex = artifact.quiz.correctIndex,
+                    correctIndex = quiz.correctIndex,
                     tested = artifact.tested,
                 )
             }

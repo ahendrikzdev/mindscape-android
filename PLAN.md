@@ -5,6 +5,11 @@
 > **Gesture update (post-build):** the app now uses **panel swipes only**. Horizontal swipes
 > move between Learn, Watch and Map; card-level Learn/Map swipes were removed and are exposed
 > as explicit buttons. The feed's pager keys and page clamping were hardened at the same time.
+>
+> **AI client update:** the Android client now has a `LessonAnalyzer` contract, an on-device
+> mock analyzer (URL parsing + transcript-based summary/quiz), a remote async job-API client,
+> DataStore persistence, and watch-only quiz handling. The backend itself and video playback
+> are still pending.
 
 ## 1. Goal & approach
 
@@ -97,7 +102,8 @@ edge-to-edge, content capped at ~460 dp and centered on tablets.
   map-completion percentage.
 - Intentional fixes: XP awarded once per video; blank imports rejected; deleting the active
   video falls back gracefully; realm switching resets selection coherently.
-- State is in-memory to match prototype reload behavior; persistence is a documented follow-up.
+- State is persisted to DataStore as versioned JSON (schema v1) and restored on launch; raw
+  Android resource ids are avoided by persisting stable thumbnail keys.
 
 ## 6. GitHub Actions
 

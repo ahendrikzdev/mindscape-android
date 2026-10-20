@@ -1,7 +1,5 @@
 package com.mindscape.app.data
 
-import com.mindscape.app.R
-
 /**
  * Seed data mirroring the original Mindscape HTML prototype.
  *
@@ -10,14 +8,6 @@ import com.mindscape.app.R
 object MindscapeRepository {
 
     const val INITIAL_XP = 850
-
-    val importThumbnails: List<Int> = listOf(
-        R.drawable.thumb_superposition,
-        R.drawable.thumb_double_slit,
-        R.drawable.thumb_entanglement,
-        R.drawable.thumb_bell_test,
-        R.drawable.thumb_qubits,
-    )
 
     fun domains(): List<Domain> = listOf(
         Domain(
@@ -125,11 +115,14 @@ object MindscapeRepository {
     fun videos(): List<VideoArtifact> = listOf(
         VideoArtifact(
             id = "art-1",
-            title = "Schrödinger Cat & Wave States",
-            author = "@science_daily",
+            title = "Visualization of Quantum Physics (Quantum Mechanics)",
+            author = "@udiprod",
             nodeId = "q-mechanics-101",
             tested = true,
-            thumbnailRes = R.drawable.thumb_superposition,
+            thumbnailKey = ThumbnailCatalog.SUPERPOSITION,
+            sourceUrl = "https://www.youtube.com/watch?v=p7bzE1E5PMY",
+            videoId = "p7bzE1E5PMY",
+            thumbnailUrl = "https://i.ytimg.com/vi/p7bzE1E5PMY/hqdefault.jpg",
             caption = "Until a state is measured, quantum particles exist in multiple possibilities simultaneously.",
             summary = "Superposition is the core quantum principle where particles exist in multiple states at once until measured.",
             quiz = Quiz(
@@ -140,11 +133,14 @@ object MindscapeRepository {
         ),
         VideoArtifact(
             id = "art-2",
-            title = "Double Slit Light Experiment",
-            author = "@lab_shorts",
+            title = "DR. QUANTUM - DOUBLE SLIT EXPERIMENT",
+            author = "@AngelArt",
             nodeId = "q-mechanics-101",
             tested = true,
-            thumbnailRes = R.drawable.thumb_double_slit,
+            thumbnailKey = ThumbnailCatalog.DOUBLE_SLIT,
+            sourceUrl = "https://www.youtube.com/watch?v=Q1YqgPAtzho",
+            videoId = "Q1YqgPAtzho",
+            thumbnailUrl = "https://i.ytimg.com/vi/Q1YqgPAtzho/hqdefault.jpg",
             caption = "Firing photons through two slits creates wave patterns even when sent one by one.",
             summary = "Demonstrates wave-particle duality. Individual particles interfere with their own probability waves.",
             quiz = Quiz(
@@ -155,11 +151,14 @@ object MindscapeRepository {
         ),
         VideoArtifact(
             id = "art-3",
-            title = "Quantum Entanglement Explained",
-            author = "@cosmos_bits",
+            title = "Quantum Entanglement & Spooky Action at a Distance",
+            author = "@veritasium",
             nodeId = "q-entanglement",
             tested = true,
-            thumbnailRes = R.drawable.thumb_entanglement,
+            thumbnailKey = ThumbnailCatalog.ENTANGLEMENT,
+            sourceUrl = "https://www.youtube.com/watch?v=ZuvK-od647c",
+            videoId = "ZuvK-od647c",
+            thumbnailUrl = "https://i.ytimg.com/vi/ZuvK-od647c/hqdefault.jpg",
             caption = "Two entangled particles instantaneously mirror changes in state regardless of distance.",
             summary = "Entanglement links quantum states across vast distances without physical connection.",
             quiz = Quiz(
@@ -174,7 +173,7 @@ object MindscapeRepository {
             author = "@physics_lab",
             nodeId = "q-entanglement",
             tested = false,
-            thumbnailRes = R.drawable.thumb_bell_test,
+            thumbnailKey = ThumbnailCatalog.BELL_TEST,
             caption = "Proving that local hidden variables cannot account for quantum entanglement correlations.",
             summary = "John Bell formulated equations proving quantum interactions cannot be explained by classical physics.",
             quiz = Quiz(
@@ -185,11 +184,14 @@ object MindscapeRepository {
         ),
         VideoArtifact(
             id = "art-5",
-            title = "Qubits vs Classical Bits",
-            author = "@tech_today",
+            title = "Quantum Computers Explained – Limits of Human Technology",
+            author = "@kurzgesagt",
             nodeId = "q-computing",
             tested = false,
-            thumbnailRes = R.drawable.thumb_qubits,
+            thumbnailKey = ThumbnailCatalog.QUBITS,
+            sourceUrl = "https://www.youtube.com/watch?v=JhHMJCUmq28",
+            videoId = "JhHMJCUmq28",
+            thumbnailUrl = "https://i.ytimg.com/vi/JhHMJCUmq28/hqdefault.jpg",
             caption = "Classical bits store 0 or 1. Quantum qubits harness superposition to evaluate parallel paths.",
             summary = "Qubits scale exponentially, giving quantum computers huge speed advantages for complex math.",
             quiz = Quiz(

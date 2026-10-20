@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindscape.app.data.ThumbnailCatalog
 import com.mindscape.app.data.VideoArtifact
 import com.mindscape.app.ui.theme.ForestBg
 import com.mindscape.app.ui.theme.ForestCard
@@ -72,7 +73,7 @@ fun FeedVideoCard(
             .border(1.dp, NeonEmerald.copy(alpha = 0.2f), RoundedCornerShape(28.dp)),
     ) {
         Image(
-            painter = painterResource(artifact.thumbnailRes),
+            painter = painterResource(ThumbnailCatalog.drawableFor(artifact.thumbnailKey)),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.matchParentSize(),
@@ -116,7 +117,11 @@ fun FeedVideoCard(
             }
             GlassPill {
                 MonoLabel(
-                    text = if (artifact.tested) "MASTERED" else "QUIZ PENDING",
+                    text = when {
+                        artifact.tested -> "MASTERED"
+                        artifact.quiz == null -> "WATCH ONLY"
+                        else -> "QUIZ PENDING"
+                    },
                     color = if (artifact.tested) NeonLime else TextMuted,
                     fontSize = 8.sp,
                     letterSpacing = 0.5.sp,
@@ -229,7 +234,7 @@ fun VideoMiniCard(
                     .background(ForestCard),
             ) {
                 Image(
-                    painter = painterResource(artifact.thumbnailRes),
+                    painter = painterResource(ThumbnailCatalog.drawableFor(artifact.thumbnailKey)),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.matchParentSize(),

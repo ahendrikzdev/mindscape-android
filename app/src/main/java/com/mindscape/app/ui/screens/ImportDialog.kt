@@ -11,10 +11,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoFixHigh
@@ -44,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mindscape.app.analysis.AnalysisStage
 import com.mindscape.app.data.Domain
 import com.mindscape.app.ui.components.GlassIconButton
 import com.mindscape.app.ui.components.GlassSurface
@@ -64,8 +69,14 @@ import kotlinx.coroutines.launch
 fun ImportDialog(
     domains: List<Domain>,
     activeDomainId: String,
+    isMockMode: Boolean,
     onDismiss: () -> Unit,
-    onExtract: suspend (url: String, nodeId: String) -> Unit,
+    onAnalyze: suspend (
+        url: String,
+        transcript: String?,
+        nodeId: String,
+        onStage: (AnalysisStage) -> Unit,
+    ) -> Unit,
     onImported: () -> Unit,
 ) {
     val activeDomain = domains.firstOrNull { it.id == activeDomainId }
@@ -73,29 +84,32 @@ fun ImportDialog(
     val scope = rememberCoroutineScope()
 
     var url by rememberSaveable {
-        mutableStateOf("https://tiktok.com/@learn/video/quantum-101")
+        mutableStateOf("https://www.youtube.com/watch?v=ZuvK-od647c")
     }
+    var transcript by remember { mutableStateOf("") }
     var selectedNodeId by rememberSaveable(activeDomainId) {
         mutableStateOf(nodes.firstOrNull()?.id.orEmpty())
     }
     var nodeMenuExpanded by remember { mutableStateOf(false) }
-    var isExtracting by remember { mutableStateOf(false) }
+    var isAnalyzing by remember { mutableStateOf(false) }
+    var stage by remember { mutableStateOf<AnalysisStage?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val selectedNode = nodes.firstOrNull { it.id == selectedNodeId }
 
     Dialog(
-        onDismissRequest = { if (!isExtracting) onDismiss() },
+        onDismissRequest = { if (!isAnalyzing) onDismiss() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnBackPress = !isExtracting,
-            dismissOnClickOutside = !isExtracting,
+            dismissOnBackPress = !isAnalyzing,
+            dismissOnClickOutside = !isAnalyzing,
         ),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.85f))
+                .imePadding()
                 .padding(16.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -104,11 +118,15 @@ fun ImportDialog(
                 shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 340.dp),
+                    .widthIn(max = 340.dp)
+                    .heightIn(max = 640.dp),
                 contentPadding = PaddingValues(16.dp),
             ) {
                 Box {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -136,7 +154,11 @@ fun ImportDialog(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                text = "Mindscape extracts key points to generate lessons",
+                                text = if (isMockMode) {
+                                    "Mock analyzer · on-device summary & quiz from your transcript"
+                                } else {
+                                    "AI backend · transcript, summary & quiz generation"
+                                },
                                 color = TextMuted.copy(alpha = 0.8f),
                                 fontSize = 9.sp,
                                 textAlign = TextAlign.Center,
@@ -169,6 +191,63 @@ fun ImportDialog(
                                     unfocusedTextColor = TextPrimary,
                                     cursorColor = NeonCyan,
                                 ),
+                            )
+                        }
+
+                        Column {
+                            MonoLabel(
+                                "TRANSCRIPT / CAPTIONS (OPTIONAL)",
+                                fontSize = 9.sp,
+                                letterSpacing = 0.8.sp,
+                            )
+                            Spacer(Modifier.size(4.dp))
+                            OutlinedTextField(
+                                value = transcript,
+                                onValueChange = {
+                                    if (it.length <= 40_000) {
+                                        transcript = it
+                                        error = null
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 84.dp, max = 150.dp),
+                                textStyle = TextStyle(
+                                    color = TextPrimary,
+                                    fontSize = 11.sp,
+                                    fontFamily = SpaceGrotesk,
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                minLines = 3,
+                                maxLines = 5,
+                                placeholder = {
+                                    Text(
+                                        text = "Paste captions or a transcript to generate a summary and quiz…",
+                                        color = TextMuted.copy(alpha = 0.55f),
+                                        fontSize = 10.sp,
+                                        lineHeight = 14.sp,
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NeonCyan,
+                                    unfocusedBorderColor = ForestBorder.copy(alpha = 0.8f),
+                                    focusedContainerColor = ForestBg,
+                                    unfocusedContainerColor = ForestBg,
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    cursorColor = NeonCyan,
+                                ),
+                            )
+                            Spacer(Modifier.size(4.dp))
+                            Text(
+                                text = if (isMockMode) {
+                                    "The mock analyzer builds a summary + quiz from this text. Without it, the video is watch-only."
+                                } else {
+                                    "Optional if the backend can fetch captions automatically."
+                                },
+                                color = TextMuted.copy(alpha = 0.7f),
+                                fontSize = 8.sp,
+                                lineHeight = 12.sp,
                             )
                         }
 
@@ -237,30 +316,55 @@ fun ImportDialog(
                             )
                         }
 
+                        if (isAnalyzing) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    color = NeonCyan,
+                                    strokeWidth = 1.5.dp,
+                                )
+                                Spacer(Modifier.size(6.dp))
+                                Text(
+                                    text = stageLabel(stage),
+                                    color = NeonCyan,
+                                    fontSize = 9.sp,
+                                    fontFamily = SpaceGrotesk,
+                                )
+                            }
+                        }
+
                         GradientButton(
                             onClick = {
                                 if (url.isBlank() || selectedNodeId.isBlank()) {
                                     error = "Paste a video link first."
                                 } else {
                                     error = null
+                                    stage = AnalysisStage.VALIDATING
                                     scope.launch {
-                                        isExtracting = true
+                                        isAnalyzing = true
                                         try {
-                                            onExtract(url.trim(), selectedNodeId)
+                                            val cleanTranscript = transcript.trim()
+                                                .takeIf { it.isNotEmpty() }
+                                            onAnalyze(
+                                                url.trim(),
+                                                cleanTranscript,
+                                                selectedNodeId,
+                                            ) { stage = it }
                                             onImported()
                                         } catch (t: Exception) {
-                                            error = t.message ?: "Could not import this video."
+                                            error = t.message ?: "Could not analyze this video."
                                         } finally {
-                                            isExtracting = false
+                                            isAnalyzing = false
+                                            stage = null
                                         }
                                     }
                                 }
                             },
-                            enabled = !isExtracting && url.isNotBlank() && selectedNodeId.isNotBlank(),
+                            enabled = !isAnalyzing && url.isNotBlank() && selectedNodeId.isNotBlank(),
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = PaddingValues(vertical = 10.dp),
                         ) {
-                            if (isExtracting) {
+                            if (isAnalyzing) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(14.dp),
                                     color = ForestBg,
@@ -276,10 +380,10 @@ fun ImportDialog(
                             }
                             Spacer(Modifier.size(6.dp))
                             Text(
-                                text = if (isExtracting) {
-                                    "Extracting Lesson..."
+                                text = if (isAnalyzing) {
+                                    "Analyzing..."
                                 } else {
-                                    "Extract & Add to Map"
+                                    "Analyze & Add to Map"
                                 },
                                 color = ForestBg,
                                 fontSize = 10.sp,
@@ -290,7 +394,7 @@ fun ImportDialog(
 
                     GlassIconButton(
                         contentDescription = "Close import dialog",
-                        onClick = { if (!isExtracting) onDismiss() },
+                        onClick = { if (!isAnalyzing) onDismiss() },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .size(28.dp),
@@ -306,4 +410,13 @@ fun ImportDialog(
             }
         }
     }
+}
+
+private fun stageLabel(stage: AnalysisStage?): String = when (stage) {
+    AnalysisStage.VALIDATING -> "Validating link…"
+    AnalysisStage.RESOLVING -> "Resolving source…"
+    AnalysisStage.TRANSCRIBING -> "Transcribing audio…"
+    AnalysisStage.ANALYZING -> "Building lesson & quiz…"
+    AnalysisStage.SAVING -> "Saving to your map…"
+    null -> "Preparing…"
 }

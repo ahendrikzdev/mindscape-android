@@ -1,90 +1,151 @@
 package com.mindscape.app
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.mindscape.app.analysis.AnalysisStage
+import com.mindscape.app.analysis.AnalyzerProvider
+import com.mindscape.app.analysis.LessonAnalyzer
+import com.mindscape.app.analysis.LessonRequest
 import com.mindscape.app.data.LearnTab
 import com.mindscape.app.data.MindscapeRepository
+import com.mindscape.app.data.MindscapeStateStore
 import com.mindscape.app.data.MindscapeUiState
-import com.mindscape.app.data.Quiz
+import com.mindscape.app.data.ThumbnailCatalog
 import com.mindscape.app.data.VideoArtifact
 import com.mindscape.app.domain.MindscapeEngine
-import kotlinx.coroutines.delay
+import java.net.URI
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class MindscapeViewModel : ViewModel() {
+class MindscapeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(
-        MindscapeUiState(
-            domains = MindscapeRepository.domains(),
-            activeDomainId = "quantum",
-            selectedNodeId = "q-entanglement",
-            activeArtifactId = "art-3",
-            videoFeed = MindscapeRepository.videos(),
-            userXp = MindscapeRepository.INITIAL_XP,
-        ),
+    private val store = MindscapeStateStore(application)
+    private val analyzer: LessonAnalyzer = AnalyzerProvider.create(
+        baseUrl = BuildConfig.BACKEND_BASE_URL,
+        apiKey = BuildConfig.BACKEND_API_KEY,
     )
+    val isMockMode: Boolean = analyzer.isMock
 
+    private val _uiState = MutableStateFlow(seedState())
     val uiState: StateFlow<MindscapeUiState> = _uiState.asStateFlow()
 
-    fun selectDomain(domainId: String) = _uiState.update {
+    private val saveQueue = Channel<MindscapeUiState>(Channel.CONFLATED)
+    private var hasLocalChanges = false
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            for (state in saveQueue) {
+                runCatching { store.save(state) }
+            }
+        }
+        viewModelScope.launch {
+            val restored = store.load()
+            if (restored != null && !hasLocalChanges) {
+                _uiState.value = restored
+            }
+        }
+    }
+
+    fun selectDomain(domainId: String) = update {
         MindscapeEngine.selectDomain(it, domainId)
     }
 
-    fun selectNode(nodeId: String) = _uiState.update {
+    fun selectNode(nodeId: String) = update {
         MindscapeEngine.selectNode(it, nodeId)
     }
 
-    fun selectArtifact(artifactId: String) = _uiState.update {
+    fun selectArtifact(artifactId: String) = update {
         MindscapeEngine.selectArtifact(it, artifactId)
     }
 
-    fun setLearnTab(tab: LearnTab) = _uiState.update {
+    fun setLearnTab(tab: LearnTab) = update {
         MindscapeEngine.setLearnTab(it, tab)
     }
 
-    fun answerQuestion(artifactId: String, optionIndex: Int) = _uiState.update {
+    fun answerQuestion(artifactId: String, optionIndex: Int) = update {
         MindscapeEngine.answerQuestion(it, artifactId, optionIndex)
     }
 
-    fun removeVideo(videoId: String) = _uiState.update {
+    fun removeVideo(videoId: String) = update {
         MindscapeEngine.removeVideo(it, videoId)
     }
 
     /**
-     * Simulates the prototype's "AI extraction" pipeline, then pins the new video to a node.
-     * The suspension point is driven by the caller's scope so the dialog can show progress.
+     * Resolves a video through the configured analyzer (remote AI backend or local mock) and
+     * pins the result to a topic node. The caller's scope drives progress and cancellation.
      */
-    suspend fun importVideo(url: String, nodeId: String) {
+    suspend fun importVideo(
+        url: String,
+        nodeId: String,
+        transcript: String?,
+        onStage: (AnalysisStage) -> Unit,
+    ) {
         require(url.isNotBlank()) { "Paste a video link first." }
-        delay(IMPORT_DELAY_MS)
 
-        val state = _uiState.value
-        val node = state.domains
+        val node = _uiState.value.domains
             .flatMap { it.nodes }
-            .firstOrNull { it.id == nodeId } ?: return
+            .firstOrNull { it.id == nodeId }
+            ?: throw IllegalArgumentException("Choose a topic node.")
 
-        val artifact = VideoArtifact(
-            id = "art-${System.currentTimeMillis()}",
-            title = "Key Points: ${node.title}",
-            author = "@companion_ai",
-            nodeId = node.id,
-            tested = false,
-            thumbnailRes = MindscapeRepository.importThumbnails.random(),
-            caption = "Extracted key insights and main takeaways from imported short video clip.",
-            summary = "Key Lesson: Direct summary of principles covering ${node.title}.",
-            quiz = Quiz(
-                question = "What is the main takeaway from this clip?",
-                options = listOf("Scientific principle", "Random music", "Unrelated joke"),
-                correctIndex = 0,
+        val analysis = analyzer.analyze(
+            request = LessonRequest(
+                url = url,
+                nodeId = nodeId,
+                nodeTitle = node.title,
+                transcript = transcript,
             ),
+            onStage = onStage,
         )
 
-        _uiState.update { MindscapeEngine.addVideo(it, artifact) }
+        val artifact = VideoArtifact(
+            id = "art-${UUID.randomUUID()}",
+            title = analysis.title,
+            author = analysis.author,
+            nodeId = nodeId,
+            tested = false,
+            thumbnailKey = ThumbnailCatalog.keyForNode(nodeId),
+            caption = "Imported from ${sourceHost(analysis.sourceUrl)}",
+            summary = analysis.summary,
+            quiz = analysis.quiz,
+            keyPoints = analysis.keyPoints,
+            sourceUrl = analysis.sourceUrl,
+            videoId = analysis.videoId,
+            thumbnailUrl = analysis.thumbnailUrl,
+            transcript = analysis.transcript?.take(MAX_TRANSCRIPT_CHARS),
+        )
+
+        update { MindscapeEngine.addVideo(it, artifact) }
     }
 
+    private fun update(transform: (MindscapeUiState) -> MindscapeUiState) {
+        hasLocalChanges = true
+        val next = transform(_uiState.value)
+        _uiState.value = next
+        saveQueue.trySend(next)
+    }
+
+    private fun seedState(): MindscapeUiState = MindscapeUiState(
+        domains = MindscapeRepository.domains(),
+        activeDomainId = "quantum",
+        selectedNodeId = "q-entanglement",
+        activeArtifactId = "art-3",
+        videoFeed = MindscapeRepository.videos(),
+        userXp = MindscapeRepository.INITIAL_XP,
+    )
+
+    private fun sourceHost(url: String): String = runCatching {
+        URI(url).host?.removePrefix("www.") ?: "link"
+    }.getOrDefault("link")
+
     private companion object {
-        const val IMPORT_DELAY_MS = 750L
+        const val MAX_TRANSCRIPT_CHARS = 20_000
     }
 }
+

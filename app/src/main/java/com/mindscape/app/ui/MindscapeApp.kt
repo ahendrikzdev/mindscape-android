@@ -180,8 +180,11 @@ fun MindscapeApp(viewModel: MindscapeViewModel = viewModel()) {
         ImportDialog(
             domains = state.domains,
             activeDomainId = state.activeDomainId,
+            isMockMode = viewModel.isMockMode,
             onDismiss = { showImport = false },
-            onExtract = { url, nodeId -> viewModel.importVideo(url, nodeId) },
+            onAnalyze = { url, transcript, nodeId, onStage ->
+                viewModel.importVideo(url, nodeId, transcript, onStage)
+            },
             onImported = {
                 showImport = false
                 viewModel.setLearnTab(LearnTab.LESSON)
